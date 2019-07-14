@@ -5,4 +5,3 @@ testcase-webservices-shepherdapp-client.iml
 .mvn
 .settings
 target
-/src/main/resources/gui-interface-1.0.0.jar

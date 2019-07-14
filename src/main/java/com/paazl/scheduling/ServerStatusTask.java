@@ -1,35 +1,40 @@
 package com.paazl.scheduling;
 
-import java.time.LocalDateTime;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import com.paazl.gui.GuiInterface;
+import com.paazl.model.SheepStatusesDto;
+import com.paazl.service.ShepherdService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.ResourceAccessException;
 
-import com.paazl.gui.GuiInterface;
+import java.math.BigInteger;
+import java.time.LocalDateTime;
 
 @Component
 public class ServerStatusTask {
+    private final ShepherdService shepherdService;
+    private final GuiInterface guiInterface;
 
-    /*
-        TODO
-        The task will update the GUI as instructed by the CRON job set in the properties file. But now it only prints
-        a hard coded string.
-        Change the code so this task prints the server status obtained from the server instead of the hard coded
-        string.
-     */
-
-    private GuiInterface guiInterface;
-
-    @Autowired
-    public ServerStatusTask(
-            GuiInterface guiInterface) {
+    public ServerStatusTask(ShepherdService shepherdService, GuiInterface guiInterface) {
+        this.shepherdService = shepherdService;
         this.guiInterface = guiInterface;
     }
 
     @Scheduled(cron="${scheduling.server_status.cron}")
     public void getServerStatus() {
-        guiInterface.addServerFeedback("Server status... " + LocalDateTime.now().toString());
+        try {
+            SheepStatusesDto sheepStatuses = shepherdService.getSheepStatuses();
+            BigInteger currentBalance = shepherdService.getCurrentBalance();
+
+            guiInterface.addServerFeedback("Server status... " + LocalDateTime.now().toString()
+                    + ", healthy sheeps: " + sheepStatuses.getNumberOfHealthySheep()
+                    + ", dead sheeps: " + sheepStatuses.getNumberOfDeadSheep()
+                    + ", balance: " + currentBalance.toString());
+        } catch (ResourceAccessException e) {
+            guiInterface.addServerFeedback("Can not access the server: " + e.getMessage());
+        } catch (RuntimeException e) {
+            guiInterface.addServerFeedback("Error during request the server: " + e.getMessage());
+        }
     }
 
 }
